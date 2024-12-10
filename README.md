@@ -1,16 +1,25 @@
-# real_time_image_processing
+# Cigarette Detection Flutter App
 
-A new Flutter project.
+This Flutter-based app uses **Google ML Kit** and **TensorFlow** to detect people who are smoking in real-time. The app leverages **face detection** and **image detection** technologies to identify smoking individuals.
 
-## Getting Started
+## Features
+- **Face Detection**: Detects user faces and analyzes whether they are smoking.
+- **Image Detection**: A model trained with TensorFlow identifies smoking people using images sourced from Kaggle.
+- **Real-time Performance**: Utilizes Google ML Kit for fast and accurate real-time image analysis.
 
-This project is a starting point for a Flutter application.
+## Technologies Used
+- **Flutter**: Mobile application development.
+- **Google ML Kit**: For face and image detection.
+- **TensorFlow**: For training and integrating the deep learning model.
+- **Kaggle**: Platform providing the training dataset.
 
-A few resources to get you started if this is your first Flutter project:
+## App Flow
+1. The user opens the app and grants camera permission.
+2. The app performs real-time face detection.
+3. After detecting the face, it analyzes the smoking status and displays the result.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Installation
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Clone the repository to your local machine:
+   ```bash
+   git clone https://github.com/username/smoking-detection.git
