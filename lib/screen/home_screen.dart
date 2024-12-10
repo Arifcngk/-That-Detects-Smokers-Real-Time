@@ -1,4 +1,4 @@
-// ignore_for_file: unused_local_variable
+// ignore_for_file: unused_local_variable, avoid_print
 
 import 'dart:io';
 
@@ -6,6 +6,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart';
 
 class HomeScreenPage extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -36,6 +38,7 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
     super.initState();
     _initializeCamera();
     _initializeImageLabeler();
+    loadModel();
   }
 
   @override
@@ -48,9 +51,9 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
   Future<void> _initializeCamera() async {
     try {
       controller = CameraController(
-        widget.cameras[1],
+        widget.cameras[0],
         ResolutionPreset.max,
-        imageFormatGroup: ImageFormatGroup.yuv420,
+        imageFormatGroup: ImageFormatGroup.nv21, // nv21 formatı kullanıldı
       );
 
       await controller.initialize();
@@ -72,10 +75,19 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
     }
   }
 
+  loadModel() async {
+    final modelPath = await getModelPath('assets/ml/fruits.tflite');
+    final options = LocalLabelerOptions(
+      confidenceThreshold: 0.8,
+      modelPath: modelPath,
+    );
+    imageLabeler = ImageLabeler(options: options);
+  }
+
   /// ImageLabeler başlatma işlemi
   void _initializeImageLabeler() {
-    var options = ImageLabelerOptions(confidenceThreshold: 0.5);
-    imageLabeler = ImageLabeler(options: options);
+    // var options = ImageLabelerOptions(confidenceThreshold: 0.5);
+    // imageLabeler = ImageLabeler(options: options);
   }
 
   /// Gerçek zamanlı görüntü işleme işlemi
@@ -83,47 +95,50 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
     final inputImage = _inputImageFromCameraImage(image);
     if (inputImage == null) {
       setState(() => isBusy = false);
+      print("Input image dönüşümü başarısız.");
       return;
     }
 
-    final labels = await imageLabeler.processImage(inputImage);
-    print("Etiket sayısı: ${labels.length}");
+    try {
+      final labels = await imageLabeler.processImage(inputImage);
+      print("Etiket sayısı: ${labels.length}");
 
-    if (labels.isEmpty) {
-      print("Hiçbir etiket tespit edilmedi.");
+      if (labels.isEmpty) {
+        print("Hiçbir etiket tespit edilmedi.");
+      }
+
+      // Sonuçları biriktirmek için StringBuffer kullanımı
+      final buffer = StringBuffer();
+      for (final label in labels) {
+        buffer.writeln("${label.label}: ${label.confidence.toStringAsFixed(2)}");
+      }
+
+      setState(() {
+        result = buffer.toString();
+        isBusy = false;
+      });
+    } catch (e) {
+      print("Etiketleme hatası: $e");
+      setState(() => isBusy = false);
     }
-
-    // Sonuçları biriktirmek için StringBuffer kullanımı
-    final buffer = StringBuffer();
-    for (final label in labels) {
-      buffer.writeln("${label.label}: ${label.confidence.toStringAsFixed(2)}");
-    }
-
-    setState(() {
-      result = buffer.toString();
-      isBusy = false;
-    });
   }
 
   /// Kamera görüntüsünü InputImage'e dönüştürme işlemi
   InputImage? _inputImageFromCameraImage(CameraImage image) {
-    final camera = widget.cameras[1];
+    final camera = widget.cameras[0];
     final sensorOrientation = camera.sensorOrientation;
 
-    // Platforma göre döndürme hesaplaması
     InputImageRotation? rotation;
     if (Platform.isIOS) {
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
-      var rotationCompensation =
-          _orientations[controller.value.deviceOrientation];
+      var rotationCompensation = _orientations[controller.value.deviceOrientation];
       if (rotationCompensation == null) return null;
 
       if (camera.lensDirection == CameraLensDirection.front) {
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
       } else {
-        rotationCompensation =
-            (sensorOrientation - rotationCompensation + 360) % 360;
+        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
       }
 
       rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
@@ -131,15 +146,13 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
 
     if (rotation == null) return null;
 
-    // Format kontrolü
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null ||
-        (Platform.isAndroid && format != InputImageFormat.nv21) ||
-        (Platform.isIOS && format != InputImageFormat.bgra8888)) {
+    if (format == null || (format != InputImageFormat.nv21 && format != InputImageFormat.yuv420)) {
+      print("Geçersiz format: ${image.format.raw}");
       return null;
     }
 
-    if (image.planes.length != 1) return null;
+    if (image.planes.isEmpty) return null;
     final plane = image.planes.first;
 
     return InputImage.fromBytes(
@@ -151,6 +164,17 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
         bytesPerRow: plane.bytesPerRow,
       ),
     );
+  }
+
+  Future<String> getModelPath(String asset) async {
+    final path = '${(await getApplicationSupportDirectory()).path}/$asset';
+    await Directory(dirname(path)).create(recursive: true);
+    final file = File(path);
+    if (!await file.exists()) {
+      final byteData = await rootBundle.load(asset);
+      await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+    }
+    return file.path;
   }
 
   @override

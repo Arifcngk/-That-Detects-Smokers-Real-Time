@@ -13,7 +13,7 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   final List<CameraDescription> cameras;
-  
+
   const MyApp({super.key, required this.cameras});
 
   @override
