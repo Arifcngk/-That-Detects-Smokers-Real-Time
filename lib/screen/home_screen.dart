@@ -51,7 +51,7 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
   Future<void> _initializeCamera() async {
     try {
       controller = CameraController(
-        widget.cameras[0],
+        widget.cameras[1],
         ResolutionPreset.max,
         imageFormatGroup: ImageFormatGroup.nv21, // nv21 formatı kullanıldı
       );
@@ -76,7 +76,7 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
   }
 
   loadModel() async {
-    final modelPath = await getModelPath('assets/ml/fruits.tflite');
+    final modelPath = await getModelPath('assets/ml/smoking.tflite');
     final options = LocalLabelerOptions(
       confidenceThreshold: 0.8,
       modelPath: modelPath,
@@ -110,7 +110,8 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
       // Sonuçları biriktirmek için StringBuffer kullanımı
       final buffer = StringBuffer();
       for (final label in labels) {
-        buffer.writeln("${label.label}: ${label.confidence.toStringAsFixed(2)}");
+        buffer
+            .writeln("${label.label}: ${label.confidence.toStringAsFixed(2)}");
       }
 
       setState(() {
@@ -125,20 +126,22 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
 
   /// Kamera görüntüsünü InputImage'e dönüştürme işlemi
   InputImage? _inputImageFromCameraImage(CameraImage image) {
-    final camera = widget.cameras[0];
+    final camera = widget.cameras[1];
     final sensorOrientation = camera.sensorOrientation;
 
     InputImageRotation? rotation;
     if (Platform.isIOS) {
       rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
-      var rotationCompensation = _orientations[controller.value.deviceOrientation];
+      var rotationCompensation =
+          _orientations[controller.value.deviceOrientation];
       if (rotationCompensation == null) return null;
 
       if (camera.lensDirection == CameraLensDirection.front) {
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
       } else {
-        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+        rotationCompensation =
+            (sensorOrientation - rotationCompensation + 360) % 360;
       }
 
       rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
@@ -147,7 +150,9 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
     if (rotation == null) return null;
 
     final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null || (format != InputImageFormat.nv21 && format != InputImageFormat.yuv420)) {
+    if (format == null ||
+        (format != InputImageFormat.nv21 &&
+            format != InputImageFormat.yuv420)) {
       print("Geçersiz format: ${image.format.raw}");
       return null;
     }
@@ -172,7 +177,8 @@ class _HomeScreenPageState extends State<HomeScreenPage> {
     final file = File(path);
     if (!await file.exists()) {
       final byteData = await rootBundle.load(asset);
-      await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+      await file.writeAsBytes(byteData.buffer
+          .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
     }
     return file.path;
   }
