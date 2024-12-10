@@ -21,5 +21,16 @@ This Flutter-based app uses **Google ML Kit** and **TensorFlow** to detect peopl
 ## Installation
 
 1. Clone the repository to your local machine:
-   ```bash
-   git clone https://github.com/username/smoking-detection.git
+
+   `git clone https://github.com/username/smoking-detection.git`
+
+2. Install Flutter dependencies:
+
+   `flutter pub get`
+
+3. Run the app on your device (Android/iOS):
+
+   `flutter run`
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
